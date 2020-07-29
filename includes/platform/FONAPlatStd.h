@@ -46,7 +46,7 @@
 // DebugStream	sets the Stream output to use
 // for debug (only applies when ADAFRUIT_FONA_DEBUG
 // is defined in config)
-#define DebugStream Serial
+#define DebugStream SerialUSB
 
 #ifdef ADAFRUIT_FONA_DEBUG
 // need to do some debugging...
