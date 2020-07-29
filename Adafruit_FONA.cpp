@@ -350,7 +350,7 @@ uint8_t Adafruit_FONA::getIMEI(char *imei) {
 uint8_t Adafruit_FONA::getNetworkStatus(void) {
   uint16_t status;
 
-  if (!sendParseReply(F("AT+CREG?"), F("+CREG: "), &status, ',', 1))
+  if (!sendCheckReply(F("ATAI"), F("0")))
     return 0;
 
   return status;
@@ -2640,16 +2640,16 @@ uint8_t Adafruit_FONA::getReplyQuoted(FONAFlashStringPtr prefix,
 bool Adafruit_FONA::sendCheckReply(char *send, char *reply, uint16_t timeout) {
   if (!getReply(send, timeout))
     return false;
-  /*
-    for (uint8_t i=0; i<strlen(replybuffer); i++) {
+  
+  for (uint8_t i=0; i<strlen(replybuffer); i++) {
     DEBUG_PRINT(replybuffer[i], HEX); DEBUG_PRINT(" ");
-    }
-    DEBUG_PRINTLN();
-    for (uint8_t i=0; i<strlen(reply); i++) {
-      DEBUG_PRINT(reply[i], HEX); DEBUG_PRINT(" ");
-    }
-    DEBUG_PRINTLN();
-    */
+  }
+  DEBUG_PRINTLN();
+  for (uint8_t i=0; i<strlen(reply); i++) {
+    DEBUG_PRINT(reply[i], HEX); DEBUG_PRINT(" ");
+  }
+  DEBUG_PRINTLN();
+  
   return (strcmp(replybuffer, reply) == 0);
 }
 
