@@ -55,7 +55,7 @@
 /** Object that controls and keeps state for the FONA module. */
 class Adafruit_FONA : public FONAStreamType {
 public:
-  Adafruit_FONA(int8_t r);
+  Adafruit_FONA();
   bool begin(FONAStreamType &port);
   uint8_t type();
 
@@ -250,33 +250,6 @@ protected:
   static void onIncomingCall();
 
   FONAStreamType *mySerial; ///< Serial connection
-};
-/** Object that controls and keeps state for a 3G FONA module. */
-class Adafruit_FONA_3G : public Adafruit_FONA {
-
-public:
-  /**
-   * @brief Construct a new Adafruit_FONA_3G object
-   *
-   * @param reset_pin
-   */
-  Adafruit_FONA_3G(int8_t reset_pin) : Adafruit_FONA(reset_pin) {
-    _type = FONA3G_A;
-  }
-
-  bool getBattVoltage(uint16_t *v);
-  bool playToolkitTone(uint8_t t, uint16_t len);
-  bool hangUp(void);
-  bool pickUp(void);
-  bool enableGPRS(bool onoff);
-  bool enableGPS(bool onoff);
-
-protected:
-  bool parseReply(FONAFlashStringPtr toreply, float *f, char divider,
-                  uint8_t index);
-
-  bool sendParseReply(FONAFlashStringPtr tosend, FONAFlashStringPtr toreply,
-                      float *f, char divider = ',', uint8_t index = 0);
 };
 
 #endif

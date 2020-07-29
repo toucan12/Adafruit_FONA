@@ -44,9 +44,7 @@ using namespace std;
  *
  * @param rst The reset pin
  */
-Adafruit_FONA::Adafruit_FONA(int8_t rst) {
-  _rstpin = rst;
-
+Adafruit_FONA::Adafruit_FONA() {
   apn = F("FONAnet");
   apnusername = 0;
   apnpassword = 0;
@@ -231,21 +229,6 @@ bool Adafruit_FONA::enableRTC(uint8_t mode) {
  */
 bool Adafruit_FONA::getBattVoltage(uint16_t *v) {
   return sendParseReply(F("AT+CBC"), F("+CBC: "), v, ',', 2);
-}
-
-/* returns value in mV (uint16_t) */
-/**
- * @brief Get the current batery voltage
- *
- * @param v battery voltage pointer to be filled with the current value in mV
- * (uint16_t)
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::getBattVoltage(uint16_t *v) {
-  float f;
-  bool b = sendParseReply(F("AT+CBC"), F("+CBC: "), &f, ',', 2);
-  *v = f * 1000;
-  return b;
 }
 
 /*  */
@@ -434,19 +417,6 @@ bool Adafruit_FONA::playDTMF(char dtmf) {
 bool Adafruit_FONA::playToolkitTone(uint8_t t, uint16_t len) {
   return sendCheckReply(F("AT+STTONE=1,"), t, len, ok_reply);
 }
-/**
- * @brief Play a toolkit tone
- *
- * @param t The tone to play
- * @param len The tone length
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::playToolkitTone(uint8_t t, uint16_t len) {
-  if (!sendCheckReply(F("AT+CPTONE="), t, ok_reply))
-    return false;
-  delay(len);
-  return sendCheckReply(F("AT+CPTONE=0"), ok_reply);
-}
 
 /**
  * @brief Set the microphone gain
@@ -623,17 +593,6 @@ uint8_t Adafruit_FONA::getCallStatus(void) {
  * @return true: success, false: failure
  */
 bool Adafruit_FONA::hangUp(void) { return sendCheckReply(F("ATH0"), ok_reply); }
-/**
- * @brief End the current call
- *
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::hangUp(void) {
-  getReply(F("ATH"));
-
-  return (prog_char_strstr(replybuffer, (prog_char *)F("VOICE CALL: END")) !=
-          0);
-}
 
 /**
  * @brief Answer a call
@@ -642,14 +601,6 @@ bool Adafruit_FONA_3G::hangUp(void) {
  */
 bool Adafruit_FONA::pickUp(void) { return sendCheckReply(F("ATA"), ok_reply); }
 
-/**
- * @brief Answer an incoming call
- *
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::pickUp(void) {
-  return sendCheckReply(F("ATA"), F("VOICE CALL: BEGIN"));
-}
 /**
  * @brief On incoming call callback
  *
@@ -1095,30 +1046,6 @@ bool Adafruit_FONA::enableGPS(bool onoff) {
   return true;
 }
 
-/**
- * @brief Enable GPS
- *
- * @param onoff true: enable false: disable
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::enableGPS(bool onoff) {
-  uint16_t state;
-
-  // first check if its already on or off
-  if (!Adafruit_FONA::sendParseReply(F("AT+CGPS?"), F("+CGPS: "), &state))
-    return false;
-
-  if (onoff && !state) {
-    if (!sendCheckReply(F("AT+CGPS=1"), ok_reply))
-      return false;
-  } else if (!onoff && state) {
-    if (!sendCheckReply(F("AT+CGPS=0"), ok_reply))
-      return false;
-    // this takes a little time
-    readline(2000); // eat '+CGPS: 0'
-  }
-  return true;
-}
 /**
  * @brief Get teh GPS status
  *
@@ -1657,74 +1584,6 @@ bool Adafruit_FONA::enableGPRS(bool onoff) {
 }
 
 /**
- * @brief Enable GPRS
- *
- * @param onoff true: enable false; disable
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::enableGPRS(bool onoff) {
-
-  if (onoff) {
-    // disconnect all sockets
-    // sendCheckReply(F("AT+CIPSHUT"), F("SHUT OK"), 5000);
-
-    if (!sendCheckReply(F("AT+CGATT=1"), ok_reply, 10000))
-      return false;
-
-    // set bearer profile access point name
-    if (apn) {
-      // Send command AT+CGSOCKCONT=1,"IP","<apn value>" where <apn value> is
-      // the configured APN name.
-      if (!sendCheckReplyQuoted(F("AT+CGSOCKCONT=1,\"IP\","), apn, ok_reply,
-                                10000))
-        return false;
-
-      // set username/password
-      if (apnusername) {
-        char authstring[100] = "AT+CGAUTH=1,1,\"";
-        char *strp = authstring + strlen(authstring);
-        prog_char_strcpy(strp, (prog_char *)apnusername);
-        strp += prog_char_strlen((prog_char *)apnusername);
-        strp[0] = '\"';
-        strp++;
-        strp[0] = 0;
-
-        if (apnpassword) {
-          strp[0] = ',';
-          strp++;
-          strp[0] = '\"';
-          strp++;
-          prog_char_strcpy(strp, (prog_char *)apnpassword);
-          strp += prog_char_strlen((prog_char *)apnpassword);
-          strp[0] = '\"';
-          strp++;
-          strp[0] = 0;
-        }
-
-        if (!sendCheckReply(authstring, ok_reply, 10000))
-          return false;
-      }
-    }
-
-    // connect in transparent
-    if (!sendCheckReply(F("AT+CIPMODE=1"), ok_reply, 10000))
-      return false;
-    // open network (?)
-    if (!sendCheckReply(F("AT+NETOPEN=,,1"), F("Network opened"), 10000))
-      return false;
-
-    readline(); // eat 'OK'
-  } else {
-    // close GPRS context
-    if (!sendCheckReply(F("AT+NETCLOSE"), F("Network closed"), 10000))
-      return false;
-
-    readline(); // eat 'OK'
-  }
-
-  return true;
-}
-/**
  * @brief Get the GPRS state
  *
  * @return uint8_t The GPRS state:
@@ -2182,42 +2041,6 @@ bool Adafruit_FONA::HTTP_GET_start(char *url, uint16_t *status,
 
   return true;
 }
-
-/*
-bool Adafruit_FONA_3G::HTTP_GET_start(char *ipaddr, char *path, uint16_t port
-                                      uint16_t *status, uint16_t *datalen){
-  char send[100] = "AT+CHTTPACT=\"";
-  char *sendp = send + strlen(send);
-  memset(sendp, 0, 100 - strlen(send));
-
-  strcpy(sendp, ipaddr);
-  sendp+=strlen(ipaddr);
-  sendp[0] = '\"';
-  sendp++;
-  sendp[0] = ',';
-  itoa(sendp, port);
-  getReply(send, 500);
-
-  return;
-
-  if (! HTTP_setup(url))
-
-    return false;
-
-  // HTTP GET
-  if (! HTTP_action(FONA_HTTP_GET, status, datalen))
-    return false;
-
-  DEBUG_PRINT("Status: "); DEBUG_PRINTLN(*status);
-  DEBUG_PRINT("Len: "); DEBUG_PRINTLN(*datalen);
-
-  // HTTP response data
-  if (! HTTP_readall(datalen))
-    return false;
-
-  return true;
-}
-*/
 
 /**
  * @brief End an HTTP GET
@@ -2893,60 +2716,6 @@ bool Adafruit_FONA::sendParseReply(FONAFlashStringPtr tosend,
     return false;
 
   readline(); // eat 'OK'
-
-  return true;
-}
-
-// needed for CBC and others
-
-/**
- * @brief Send data and parse the reply
- *
- * @param tosend Pointer to he data buffer to send
- * @param toreply The expected reply string
- * @param f Pointer to a float buffer to hold value of the parsed field
- * @param divider The divider character
- * @param index The index of the parsed field to retrieve
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::sendParseReply(FONAFlashStringPtr tosend,
-                                      FONAFlashStringPtr toreply, float *f,
-                                      char divider, uint8_t index) {
-  getReply(tosend);
-
-  if (!parseReply(toreply, f, divider, index))
-    return false;
-
-  readline(); // eat 'OK'
-
-  return true;
-}
-
-/**
- * @brief Parse a reply
- *
- * @param toreply Pointer to a buffer with the expected reply string
- * @param f Pointer to a float buffer to hold the value of the parsed field
- * @param divider The divider character
- * @param index The index of the parsed field to retrieve
- * @return true: success, false: failure
- */
-bool Adafruit_FONA_3G::parseReply(FONAFlashStringPtr toreply, float *f,
-                                  char divider, uint8_t index) {
-  char *p = prog_char_strstr(replybuffer, (prog_char *)toreply);
-  if (p == 0)
-    return false;
-  p += prog_char_strlen((prog_char *)toreply);
-  // DEBUG_PRINTLN(p);
-  for (uint8_t i = 0; i < index; i++) {
-    // increment dividers
-    p = strchr(p, divider);
-    if (!p)
-      return false;
-    p++;
-    // DEBUG_PRINTLN(p);
-  }
-  *f = atof(p);
 
   return true;
 }
