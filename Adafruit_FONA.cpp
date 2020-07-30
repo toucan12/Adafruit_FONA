@@ -234,13 +234,15 @@ uint8_t Adafruit_FONA::getIMEI(char *imei) {
  *  * 4: Unknown
  *  * 5: Registered, roaming
  */
-uint8_t Adafruit_FONA::getNetworkStatus(void) {
-  uint16_t status;
+bool Adafruit_FONA::getNetworkStatus(void) {
+  if (sendCheckReply(F("+++"), ok_reply)) {
+    if (sendCheckReply(F("ATAI"), F("0"))) {
+      sendCheckReply(F("ATCN"), ok_reply);
+      return true;
+    }
+  }  
 
-  if (!sendCheckReply(F("ATAI"), F("0")))
-    return 0;
-
-  return status;
+  return false;
 }
 /**
  * @brief get the current Received Signal Strength Indication
