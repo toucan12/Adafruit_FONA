@@ -2194,12 +2194,17 @@ uint8_t Adafruit_FONA::readline(uint16_t timeout, bool multiline) {
  * @return uint8_t The response length
  */
 uint8_t Adafruit_FONA::getReply(char *send, uint16_t timeout) {
+  DEBUG_PRINTLN(F(">> uint8_t Adafruit_FONA::getReply(char *send, uint16_t timeout) called !"));
   flushInput();
 
   DEBUG_PRINT(F("\t---> "));
   DEBUG_PRINTLN(send);
 
-  mySerial->println(send);
+  if (strcmp(send, "+++") == 0) {
+    mySerial->print(send);
+  } else {
+    mySerial->println(send);
+  }
 
   uint8_t l = readline(timeout);
 
@@ -2217,12 +2222,17 @@ uint8_t Adafruit_FONA::getReply(char *send, uint16_t timeout) {
  * @return uint8_t The response length
  */
 uint8_t Adafruit_FONA::getReply(FONAFlashStringPtr send, uint16_t timeout) {
+  DEBUG_PRINTLN(F(">> uint8_t Adafruit_FONA::getReply(FONAFlashStringPtr send, uint16_t timeout) called !"));
   flushInput();
 
   DEBUG_PRINT(F("\t---> "));
   DEBUG_PRINTLN(send);
 
-  mySerial->println(send);
+  if (prog_char_strcmp((prog_char *)send, PSTR("+++")) == 0) {
+    mySerial->print(send);
+  } else {
+    mySerial->println(send);
+  }
 
   uint8_t l = readline(timeout);
 
@@ -2369,15 +2379,6 @@ uint8_t Adafruit_FONA::getReplyQuoted(FONAFlashStringPtr prefix,
 bool Adafruit_FONA::sendCheckReply(char *send, char *reply, uint16_t timeout) {
   if (!getReply(send, timeout))
     return false;
-  
-  for (uint8_t i=0; i<strlen(replybuffer); i++) {
-    DEBUG_PRINT(replybuffer[i], HEX); DEBUG_PRINT(" ");
-  }
-  DEBUG_PRINTLN();
-  for (uint8_t i=0; i<strlen(reply); i++) {
-    DEBUG_PRINT(reply[i], HEX); DEBUG_PRINT(" ");
-  }
-  DEBUG_PRINTLN();
   
   return (strcmp(replybuffer, reply) == 0);
 }
