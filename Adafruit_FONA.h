@@ -82,7 +82,7 @@ public:
   // SIM query
   uint8_t unlockSIM(char *pin);
   uint8_t getSIMCCID(char *ccid);
-  uint8_t getNetworkStatus(void);
+  bool getNetworkStatus(void);
   uint8_t getRSSI(void);
 
   // IMEI
